@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "WeChat Article Reference Importer for Zotero",
+  "version": "0.1.0",
+  "description": "Extract references from WeChat articles, verify them, and import them into Zotero.",
+  "author": "Duyang",
+  "homepage_url": "https://github.com/nkbaim/zotero-wechat-importer",
+  "icons": {
+    "48": "icon.svg",
+    "96": "icon.svg"
+  },
+  "applications": {
+    "zotero": {
+      "id": "zotero-wechat-importer@duyang.dev",
+      "update_url": "https://raw.githubusercontent.com/nkbaim/zotero-wechat-importer/main/updates.json",
+      "strict_min_version": "8.999",
+      "strict_max_version": "10.0.*"
+    }
+  }
+}

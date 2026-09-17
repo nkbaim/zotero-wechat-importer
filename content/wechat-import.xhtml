@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://zotero/skin/zotero.css" type="text/css"?>
+<?xml-stylesheet href="wechat-import.css" type="text/css"?>
+
+<window
+  id="wechat-import-window"
+  windowtype="zotero:wechat-importer"
+  title="微信公众号文献导入"
+  width="1180"
+  height="820"
+  orient="vertical"
+  persist="screenX screenY width height"
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  style="display: flex;"
+>
+  <script><![CDATA[
+    Services.scriptloader.loadSubScript("chrome://zotero/content/include.js", this);
+    Services.scriptloader.loadSubScript(
+      document.documentURI.replace("wechat-import.xhtml", "wechat-core.js"),
+      this
+    );
+    Services.scriptloader.loadSubScript(
+      document.documentURI.replace("wechat-import.xhtml", "wechat-import.js"),
+      this
+    );
+  ]]></script>
+
+  <html:main id="app-shell">
+    <html:header id="app-header">
+      <html:div class="title-block">
+        <html:h1>微信公众号文献导入</html:h1>
+        <html:div id="target-label"/>
+      </html:div>
+      <html:form id="source-form">
+        <html:input id="url-input" type="url" aria-label="微信公众号文章链接" placeholder="https://mp.weixin.qq.com/s/..." autocomplete="off"/>
+        <html:button id="fetch-button" type="submit">提取文章</html:button>
+      </html:form>
+    </html:header>
+
+    <html:section id="workspace">
+      <html:section id="article-card" class="card" hidden="hidden">
+        <html:div class="card-heading">
+          <html:div>
+            <html:h2 id="article-title">文章正文</html:h2>
+            <html:div id="article-meta"/>
+          </html:div>
+          <html:button id="analyze-button" type="button" disabled="disabled">AI 识别并检索文献</html:button>
+        </html:div>
+        <html:textarea id="article-text" aria-label="文章正文" placeholder="若微信页面无法直接提取，可在此手动粘贴文章正文。"/>
+        <html:details id="api-settings">
+          <html:summary>DeepSeek API 设置</html:summary>
+          <html:div class="settings-grid">
+            <html:label for="api-key-input">API Key</html:label>
+            <html:input id="api-key-input" type="password" autocomplete="off" placeholder="sk-..."/>
+            <html:label for="model-input">模型</html:label>
+            <html:input id="model-input" type="text" autocomplete="off" value="deepseek-flash"/>
+            <html:div/>
+            <html:div class="key-actions">
+              <html:label class="remember-label">
+                <html:input id="remember-key" type="checkbox"/>
+                <html:span>保存在本机 Zotero 配置中（明文）</html:span>
+              </html:label>
+              <html:button id="clear-key-button" class="link-button" type="button">清除已保存 Key</html:button>
+            </html:div>
+          </html:div>
+        </html:details>
+      </html:section>
+
+      <html:section id="results-section" class="card results-card" hidden="hidden">
+        <html:div id="result-toolbar">
+          <html:label class="select-all-label">
+            <html:input id="select-all" type="checkbox"/>
+            <html:span>选择全部已核实文献</html:span>
+          </html:label>
+          <html:div class="legend">AI 仅提取线索；可导入记录均经 PubMed 或 Crossref 核验</html:div>
+        </html:div>
+        <html:div id="table-scroll">
+          <html:table id="results-table">
+            <html:colgroup>
+              <html:col class="select-column"/>
+              <html:col class="title-column"/>
+              <html:col class="publication-column"/>
+              <html:col class="id-column"/>
+              <html:col class="status-column"/>
+            </html:colgroup>
+            <html:thead>
+              <html:tr>
+                <html:th/>
+                <html:th>题名、作者与原文线索</html:th>
+                <html:th>来源</html:th>
+                <html:th>标识符</html:th>
+                <html:th>核验</html:th>
+              </html:tr>
+            </html:thead>
+            <html:tbody id="result-body"/>
+          </html:table>
+        </html:div>
+      </html:section>
+
+      <html:div id="empty-state">输入微信公众号文章链接，提取正文后识别其中涉及的学术文献</html:div>
+    </html:section>
+
+    <html:footer id="app-footer">
+      <html:div id="status-text" role="status"/>
+      <html:div class="footer-actions">
+        <html:span id="selected-count">已选择 0 篇</html:span>
+        <html:button id="close-button" class="secondary" type="button">关闭</html:button>
+        <html:button id="import-button" type="button" disabled="disabled">导入所选文献</html:button>
+      </html:div>
+    </html:footer>
+  </html:main>
+</window>

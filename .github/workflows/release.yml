@@ -1,0 +1,31 @@
+name: Release XPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Verify tag matches manifest version
+        shell: bash
+        run: |
+          version="$(node -p 'JSON.parse(require("node:fs").readFileSync("manifest.json", "utf8")).version')"
+          test "${GITHUB_REF_NAME}" = "v${version}"
+
+      - name: Build XPI
+        run: ./scripts/build.sh
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*.xpi
+          generate_release_notes: true
