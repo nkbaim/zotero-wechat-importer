@@ -1,6 +1,4 @@
 var WeChatImport = {
-  prefRoot: "extensions.zotero-wechat-importer.",
-  deepSeekURL: "https://api.deepseek.com/chat/completions",
   io: null,
   article: null,
   results: [],
@@ -13,16 +11,11 @@ var WeChatImport = {
 
     const target = [this.io.libraryName, this.io.collectionName].filter(Boolean).join(" / ");
     document.getElementById("target-label").textContent = `导入至：${target}`;
-    document.getElementById("api-key-input").value = this.getPref("apiKey", "");
-    document.getElementById("model-input").value = this.getPref("model", "deepseek-flash");
-    document.getElementById("remember-key").checked = Boolean(this.getPref("rememberKey", false));
-
     document.getElementById("source-form").addEventListener("submit", (event) => {
       event.preventDefault();
       this.fetchArticle();
     });
     document.getElementById("analyze-button").addEventListener("click", () => this.analyzeAndSearch());
-    document.getElementById("clear-key-button").addEventListener("click", () => this.clearSavedKey());
     document.getElementById("select-all").addEventListener("change", (event) => {
       this.selectAll(event.target.checked);
     });
@@ -30,27 +23,6 @@ var WeChatImport = {
     document.getElementById("close-button").addEventListener("click", () => window.close());
     this.updateControls();
     document.getElementById("url-input").focus();
-  },
-
-  getPref(name, fallback) {
-    try {
-      const value = Zotero.Prefs.get(`${this.prefRoot}${name}`, true);
-      return value === undefined || value === null ? fallback : value;
-    } catch (_error) {
-      return fallback;
-    }
-  },
-
-  setPref(name, value) {
-    Zotero.Prefs.set(`${this.prefRoot}${name}`, value, true);
-  },
-
-  clearSavedKey() {
-    Zotero.Prefs.clear(`${this.prefRoot}apiKey`, true);
-    Zotero.Prefs.clear(`${this.prefRoot}rememberKey`, true);
-    document.getElementById("api-key-input").value = "";
-    document.getElementById("remember-key").checked = false;
-    this.setStatus("已清除本机保存的 DeepSeek API Key");
   },
 
   validateWeChatURL(value) {
@@ -136,12 +108,10 @@ var WeChatImport = {
 
   async analyzeAndSearch() {
     if (this.busy) return;
-    const apiKey = document.getElementById("api-key-input").value.trim();
-    const model = document.getElementById("model-input").value.trim() || "deepseek-flash";
+    const provider = Zotero.WeChatImporter.getProviderConfig();
     const text = document.getElementById("article-text").value.trim();
-    if (!apiKey) {
-      this.setStatus("请先填写 DeepSeek API Key");
-      document.getElementById("api-key-input").focus();
+    if (!provider.apiKey || !provider.baseURL || !provider.model) {
+      this.setStatus(`请先在 Zotero 设置 → 微信公众号文献导入中配置 ${provider.label} 的 API Key、地址和模型`);
       return;
     }
     if (text.length < 80) {
@@ -149,15 +119,14 @@ var WeChatImport = {
       return;
     }
 
-    this.saveSettings(apiKey, model);
     this.results = [];
     this.selected.clear();
     this.renderResults();
-    this.setBusy(true, "正在使用 DeepSeek 识别文献线索...");
+    this.setBusy(true, `正在使用 ${provider.label} 识别文献线索...`);
     try {
-      const candidates = await this.extractCandidates(apiKey, model, text);
+      const candidates = await this.extractCandidates(provider, text);
       if (!candidates.length) {
-        this.setStatus("DeepSeek 未识别出可检索的文献线索");
+        this.setStatus(`${provider.label} 未识别出可检索的文献线索`);
         return;
       }
 
@@ -189,15 +158,7 @@ var WeChatImport = {
     }
   },
 
-  saveSettings(apiKey, model) {
-    const remember = document.getElementById("remember-key").checked;
-    this.setPref("model", model);
-    this.setPref("rememberKey", remember);
-    if (remember) this.setPref("apiKey", apiKey);
-    else Zotero.Prefs.clear(`${this.prefRoot}apiKey`, true);
-  },
-
-  async extractCandidates(apiKey, model, articleText) {
+  async extractCandidates(provider, articleText) {
     const articleTitle = this.article?.title || document.getElementById("article-title").textContent || "";
     const sourceURL = this.article?.url || document.getElementById("url-input").value.trim();
     const prompt = [
@@ -210,30 +171,22 @@ var WeChatImport = {
       "正文：",
       articleText.slice(0, 60000)
     ].join("\n\n");
-    const response = await Zotero.HTTP.request("POST", this.deepSeekURL, {
-      timeout: 120000,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: "你是严谨的学术文献线索抽取助手。所有输出必须是合法 JSON，且只能依据用户提供的正文。"
-          },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 6000,
-        temperature: 0.1,
-        stream: false
-      })
-    });
-    const data = this.parseResponseJSON(response);
+    const body = Zotero.WeChatImporter.prepareChatBody({
+      model: provider.model,
+      messages: [
+        {
+          role: "system",
+          content: "你是严谨的学术文献线索抽取助手。所有输出必须是合法 JSON，且只能依据用户提供的正文。"
+        },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: 6000,
+      stream: false
+    }, provider);
+    if (provider.id === "deepseek") body.response_format = { type: "json_object" };
+    const data = await Zotero.WeChatImporter.sendChatRequest(provider, body);
     const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error(data.error?.message || "DeepSeek 未返回分析内容");
+    if (!content) throw new Error(`${provider.label} 未返回分析内容`);
     return WeChatImporterCore.normalizeCandidates(content);
   },
 
@@ -246,13 +199,13 @@ var WeChatImport = {
     const pubmed = await this.searchPubMed(candidate);
     if (pubmed) {
       const result = this.finalizeResult(pubmed, candidate);
-      result.existing = await this.checkExisting(result);
+      this.setExistingItem(result, await this.checkExisting(result));
       return result;
     }
     const crossref = await this.searchCrossref(candidate);
     if (crossref) {
       const result = this.finalizeResult(crossref, candidate);
-      result.existing = await this.checkExisting(result);
+      this.setExistingItem(result, await this.checkExisting(result));
       return result;
     }
     return this.unresolvedResult(candidate, "PubMed 和 Crossref 均未找到可信匹配");
@@ -408,9 +361,36 @@ var WeChatImport = {
       const search = new Zotero.Search();
       search.libraryID = this.io.libraryID;
       search.addCondition(field, "is", value);
-      if ((await search.search()).length) return true;
+      const item = (await search.search())
+        .map((id) => Zotero.Items.get(id))
+        .find((candidate) => candidate?.isRegularItem());
+      if (item) return item;
     }
-    return false;
+    return null;
+  },
+
+  setExistingItem(record, item) {
+    record.existing = Boolean(item);
+    record.zoteroURL = item ? this.getZoteroSelectURL(item) : "";
+  },
+
+  getZoteroSelectURL(item) {
+    if (!item?.key) return "";
+    const library = Zotero.Libraries.get(item.libraryID);
+    if (library?.libraryType === "group") {
+      return `zotero://select/groups/${library.libraryTypeID}/items/${item.key}`;
+    }
+    return `zotero://select/library/items/${item.key}`;
+  },
+
+  copyZoteroURL(url) {
+    try {
+      Zotero.Utilities.Internal.copyTextToClipboard(url);
+      this.setStatus(`已复制 Zotero 链接：${url}`);
+    } catch (error) {
+      this.logError(error);
+      this.setStatus(`复制失败：${this.errorMessage(error)}`);
+    }
   },
 
   renderResults() {
@@ -455,10 +435,29 @@ var WeChatImport = {
       const idCell = this.createElement("td");
       if (item.pmid) idCell.append(this.textElement("div", "identifier-text", `PMID ${item.pmid}`));
       if (item.doi) idCell.append(this.textElement("div", "identifier-text", `DOI ${item.doi}`));
+      if (item.existing) {
+        const existingMeta = this.createElement("div");
+        existingMeta.className = "existing-meta";
+        existingMeta.append(this.textElement("span", "existing-badge", "已存在"));
+        if (item.zoteroURL) {
+          const zoteroLink = this.createElement("a");
+          zoteroLink.href = item.zoteroURL;
+          zoteroLink.className = "zotero-url";
+          zoteroLink.textContent = "Zotero URL";
+          zoteroLink.title = `点击复制：${item.zoteroURL}`;
+          zoteroLink.setAttribute("aria-label", `复制 Zotero 链接 ${item.zoteroURL}`);
+          zoteroLink.addEventListener("click", (event) => {
+            event.preventDefault();
+            this.copyZoteroURL(item.zoteroURL);
+          });
+          existingMeta.append(zoteroLink);
+        }
+        idCell.append(existingMeta);
+      }
 
       const statusCell = this.createElement("td");
       const badgeClass = item.verified ? "verified-badge" : "unresolved-badge";
-      statusCell.append(this.textElement("span", badgeClass, item.existing ? "已存在" : item.source));
+      statusCell.append(this.textElement("span", badgeClass, item.source));
       if (item.reason) statusCell.append(this.textElement("div", "reason-text", item.reason));
 
       row.append(selectCell, titleCell, publicationCell, idCell, statusCell);
@@ -501,17 +500,20 @@ var WeChatImport = {
     let imported = 0;
     let skipped = 0;
     let failed = 0;
+    const importedItems = [];
     this.setBusy(true, `正在导入 0 / ${records.length}...`);
     for (let index = 0; index < records.length; index++) {
       const record = records[index];
       this.setStatus(`正在导入 ${index + 1} / ${records.length}：${record.title}`);
       try {
-        if (await this.checkExisting(record)) {
-          record.existing = true;
+        const existingItem = await this.checkExisting(record);
+        if (existingItem) {
+          this.setExistingItem(record, existingItem);
           skipped++;
         } else {
-          await this.importRecord(record);
-          record.existing = true;
+          const importedItem = await this.importRecord(record);
+          importedItems.push(importedItem);
+          this.setExistingItem(record, importedItem);
           imported++;
         }
       } catch (error) {
@@ -521,9 +523,22 @@ var WeChatImport = {
       this.selected.delete(WeChatImporterCore.resultKey(record));
       if (index < records.length - 1) await Zotero.Promise.delay(350);
     }
+    let fullTextError = null;
+    if (importedItems.length) {
+      this.setStatus(`已导入 ${imported} 篇，正在使用 Zotero 查找可用全文...`);
+      try {
+        await Zotero.Attachments.addAvailableFiles(importedItems);
+      } catch (error) {
+        fullTextError = error;
+        this.logError(error);
+      }
+    }
     this.renderResults();
     this.setBusy(false);
-    this.setStatus(`导入完成：成功 ${imported}，已存在 ${skipped}，失败 ${failed}`);
+    this.setStatus(
+      `导入完成：成功 ${imported}，已存在 ${skipped}，失败 ${failed}` +
+      (fullTextError ? `；全文查找失败：${this.errorMessage(fullTextError)}` : "")
+    );
   },
 
   async importRecord(record) {
@@ -554,7 +569,7 @@ var WeChatImport = {
   setBusy(busy, status) {
     this.busy = busy;
     if (status) this.setStatus(status);
-    for (const id of ["url-input", "fetch-button", "api-key-input", "model-input", "analyze-button"]) {
+    for (const id of ["url-input", "fetch-button", "analyze-button"]) {
       const element = document.getElementById(id);
       if (element) element.disabled = busy;
     }

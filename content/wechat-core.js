@@ -49,14 +49,14 @@
     const cleaned = cleanString(content, 100000)
       .replace(/^```(?:json)?\s*/i, "")
       .replace(/\s*```$/, "");
-    if (!cleaned) throw new Error("DeepSeek 返回了空内容");
+    if (!cleaned) throw new Error("模型返回了空内容");
     return JSON.parse(cleaned);
   }
 
   function normalizeCandidates(content) {
     const parsed = parseJSONContent(content);
     const raw = Array.isArray(parsed) ? parsed : parsed.references;
-    if (!Array.isArray(raw)) throw new Error("DeepSeek 返回结果中缺少 references 数组");
+    if (!Array.isArray(raw)) throw new Error("模型返回结果中缺少 references 数组");
 
     const seen = new Set();
     const candidates = [];

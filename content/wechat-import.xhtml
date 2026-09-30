@@ -49,23 +49,7 @@
           <html:button id="analyze-button" type="button" disabled="disabled">AI 识别并检索文献</html:button>
         </html:div>
         <html:textarea id="article-text" aria-label="文章正文" placeholder="若微信页面无法直接提取，可在此手动粘贴文章正文。"/>
-        <html:details id="api-settings">
-          <html:summary>DeepSeek API 设置</html:summary>
-          <html:div class="settings-grid">
-            <html:label for="api-key-input">API Key</html:label>
-            <html:input id="api-key-input" type="password" autocomplete="off" placeholder="sk-..."/>
-            <html:label for="model-input">模型</html:label>
-            <html:input id="model-input" type="text" autocomplete="off" value="deepseek-flash"/>
-            <html:div/>
-            <html:div class="key-actions">
-              <html:label class="remember-label">
-                <html:input id="remember-key" type="checkbox"/>
-                <html:span>保存在本机 Zotero 配置中（明文）</html:span>
-              </html:label>
-              <html:button id="clear-key-button" class="link-button" type="button">清除已保存 Key</html:button>
-            </html:div>
-          </html:div>
-        </html:details>
+        <html:div class="model-hint">模型与 API Key：Zotero 设置 → 微信公众号文献导入</html:div>
       </html:section>
 
       <html:section id="results-section" class="card results-card" hidden="hidden">

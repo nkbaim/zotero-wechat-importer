@@ -7,7 +7,87 @@ var WeChatImporter = {
   rootURI,
   dialogURI: "chrome://zotero-wechat-importer/content/wechat-import.xhtml",
 
+  providers: {
+    deepseek: { label: "DeepSeek", baseURL: "https://api.deepseek.com", model: "deepseek-flash" },
+    qwen: { label: "Qwen（通义千问）", baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
+    zhipu: { label: "智谱 GLM", baseURL: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4.7-flash" },
+    mimo: { label: "MiMo（小米）", baseURL: "https://api.xiaomimimo.com/v1", model: "mimo-v2.6-pro" }
+  },
+
+  getPref(name, fallback = "") {
+    const value = Zotero.Prefs.get(`extensions.zotero-wechat-importer.${name}`, true);
+    return value == null ? fallback : value;
+  },
+
+  getProviderConfig() {
+    const selected = this.getPref("provider", "deepseek");
+    const id = Object.hasOwn(this.providers, selected) ? selected : "deepseek";
+    const defaults = this.providers[id];
+    return {
+      id,
+      label: defaults.label,
+      apiKey: String(this.getPref(`${id}.apiKey`)).trim(),
+      baseURL: String(this.getPref(`${id}.baseURL`, defaults.baseURL)).trim(),
+      model: String(this.getPref(`${id}.model`, defaults.model)).trim()
+    };
+  },
+
+  migrateLegacySettings() {
+    const root = "extensions.zotero-wechat-importer.";
+    const oldKey = this.getPref("apiKey");
+    if (oldKey && !this.getPref("deepseek.apiKey")) {
+      Zotero.Prefs.set(`${root}deepseek.apiKey`, oldKey, true);
+    }
+    const oldModel = this.getPref("model");
+    if (oldModel && this.getPref("deepseek.model", "deepseek-flash") === "deepseek-flash") {
+      Zotero.Prefs.set(`${root}deepseek.model`, oldModel, true);
+    }
+    if (oldKey) Zotero.Prefs.clear(`${root}apiKey`, true);
+    if (oldModel) Zotero.Prefs.clear(`${root}model`, true);
+    Zotero.Prefs.clear(`${root}rememberKey`, true);
+  },
+
+  async sendChatRequest(provider, body, timeout = 120000) {
+    const baseURL = provider.baseURL.replace(/\/+$/, "");
+    let parsed;
+    try {
+      parsed = new URL(baseURL);
+    } catch (_error) {
+      throw new Error("请在插件设置中填写有效的 API 地址");
+    }
+    if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password) {
+      throw new Error("API 地址必须是 HTTPS 地址");
+    }
+    const endpoint = baseURL.endsWith("/chat/completions")
+      ? baseURL
+      : `${baseURL}/chat/completions`;
+    const response = await Zotero.HTTP.request("POST", endpoint, {
+      timeout,
+      headers: {
+        "Content-Type": "application/json",
+        ...(provider.id === "mimo"
+          ? { "api-key": provider.apiKey }
+          : { Authorization: `Bearer ${provider.apiKey}` })
+      },
+      body: JSON.stringify(body)
+    });
+    const data = response.responseText || response.response;
+    return typeof data === "string" ? JSON.parse(data) : data;
+  },
+
+  prepareChatBody(body, provider) {
+    if (provider.id === "mimo") {
+      body.max_completion_tokens = body.max_tokens;
+      delete body.max_tokens;
+    }
+    if (["deepseek", "zhipu", "mimo"].includes(provider.id)) {
+      body.thinking = { type: "disabled" };
+    }
+    return body;
+  },
+
   async startup() {
+    this.migrateLegacySettings();
     this.menuRegistrationID = Zotero.MenuManager.registerMenu({
       pluginID: this.pluginID,
       menuID: this.menuID,

@@ -2,7 +2,8 @@ var chromeHandle;
 
 function install() {}
 
-async function startup({ rootURI }) {
+async function startup({ id, rootURI }) {
+  await Zotero.initializationPromise;
   const normalizedRootURI = rootURI.endsWith("/") ? rootURI : `${rootURI}/`;
   const addonManagerStartup = Cc["@mozilla.org/addons/addon-manager-startup;1"]
     .getService(Ci.amIAddonManagerStartup);
@@ -17,6 +18,13 @@ async function startup({ rootURI }) {
     `${normalizedRootURI}content/wechat-importer.js`,
     context
   );
+  Zotero.PreferencePanes.register({
+    pluginID: id,
+    src: `${normalizedRootURI}content/preferences.xhtml`,
+    scripts: [`${normalizedRootURI}content/preferences.js`],
+    label: "微信公众号文献导入",
+    image: `${normalizedRootURI}icon.svg`
+  });
   await Zotero.WeChatImporter.startup();
 }
 

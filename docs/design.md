@@ -10,7 +10,7 @@
 2. 大语言模型可能产生幻觉，不能直接作为题录来源；
 3. 导入 Zotero 的条目应尽量使用规范、可追踪的公开数据库记录。
 
-因此，系统将“线索提取”和“题录确认”严格分开：DeepSeek 只生成候选，PubMed / Crossref 负责核验，Zotero 翻译器负责最终导入。
+因此，系统将“线索提取”和“题录确认”严格分开：所选模型只生成候选，PubMed / Crossref 负责核验，Zotero 翻译器负责最终导入。
 
 ## 数据流
 
@@ -18,7 +18,7 @@
 mp.weixin.qq.com
        │ HTML
        ▼
-本地 DOM 提取 ──> 可编辑正文 ──> DeepSeek JSON Output
+本地 DOM 提取 ──> 可编辑正文 ──> 所选 AI 服务
                                       │ 候选题名/PMID/DOI
                        ┌──────────────┴──────────────┐
                        ▼                             ▼
@@ -32,6 +32,9 @@ mp.weixin.qq.com
                                   │
                                   ▼
                          目标文库或目标分类
+                                  │
+                                  ▼
+                      Zotero 查找可用全文
 ```
 
 ## 模块职责
@@ -40,9 +43,11 @@ mp.weixin.qq.com
 | --- | --- |
 | `bootstrap.js` | 注册 chrome content，管理插件生命周期 |
 | `content/wechat-importer.js` | 注册工具菜单、工具栏按钮，确定目标文库/分类并打开窗口 |
+| `prefs.js` | 各 AI 服务的默认配置 |
+| `content/preferences.xhtml`、`content/preferences.js` | 独立设置页及连接测试 |
 | `content/wechat-import.xhtml` | 窗口结构和控件 |
 | `content/wechat-import.css` | 浅色/深色界面样式 |
-| `content/wechat-import.js` | 页面提取、DeepSeek 调用、PubMed/Crossref 查询、去重和导入 |
+| `content/wechat-import.js` | 页面提取、AI 调用、PubMed/Crossref 查询、去重和导入 |
 | `content/wechat-core.js` | DOI/PMID 规范化、候选清洗、题名相似度和结果键；可在 Node 中测试 |
 | `tests/core.test.js` | 核心纯函数回归测试 |
 
@@ -56,9 +61,9 @@ mp.weixin.qq.com
 - UI 渲染统一使用 `textContent`，不把文章内容或模型输出写入 `innerHTML`。
 - 正文少于 80 字符时拒绝分析，避免将验证页或空页面当成正文。
 
-### DeepSeek 输出是不可信输入
+### 模型输出是不可信输入
 
-- 请求启用 JSON Output，并在提示词中给出明确 JSON 结构。
+- 提示词给出明确 JSON 结构；DeepSeek 请求额外启用 JSON Output。
 - 只读取 `references` 数组，最多保留 30 条。
 - 对所有字符串执行去空白和最大长度限制。
 - DOI 必须通过 `10.<registrant>/<suffix>` 形式校验；PMID 只接受数字。
@@ -100,7 +105,7 @@ score = 2 × |tokens(A) ∩ tokens(B)| / (|tokens(A)| + |tokens(B)|)
 - `PMID is <value>`
 - `DOI is <value>`
 
-命中任意一个条件即标记为“已存在”。当前版本不使用题名模糊去重，因为题名变体、勘误和预印本/正式版本关系容易造成误判。
+命中任意一个条件即标记为“已存在”，保存命中的 Zotero 条目并生成 `zotero://select/...` URL。用户点击“Zotero URL”时复制链接。当前版本不使用题名模糊去重，因为题名变体、勘误和预印本/正式版本关系容易造成误判。
 
 ## Zotero 导入
 
@@ -110,16 +115,16 @@ score = 2 × |tokens(A) ∩ tokens(B)| / (|tokens(A)| + |tokens(B)|)
 2. 再尝试 DOI；
 3. 使用当前窗口打开时记录的 `libraryID`；
 4. 有目标分类时传入 `collections`；
-5. `saveAttachments: false`，不下载附件。
+5. `saveAttachments: false`，由后续全文查找统一处理附件。
 
-数据库核验与 Zotero 翻译是两个独立步骤：即使 Crossref 能返回记录，Zotero 翻译器仍可能因为临时网络或元数据问题失败。
+成功导入的条目收集后传入 `Zotero.Attachments.addAvailableFiles(importedItems)`，让 Zotero 查找可用全文。全文查找失败只影响附件，已导入题录仍保留。数据库核验与 Zotero 翻译是两个独立步骤：即使 Crossref 能返回记录，Zotero 翻译器仍可能因为临时网络或元数据问题失败。
 
 ## API Key 与日志
 
-- DeepSeek 地址固定为 `https://api.deepseek.com/chat/completions`。
-- 默认不持久化 API Key。
-- 用户主动勾选时，Key 以明文写入 Zotero 全局首选项：`extensions.zotero-wechat-importer.apiKey`。
-- “清除已保存 Key”会删除该首选项。
+- 设置页提供 DeepSeek、Qwen、智谱 GLM、MiMo 的独立 Key、API 基础地址和模型名。
+- 选中的服务保存在 `extensions.zotero-wechat-importer.provider`；各项保存在 `extensions.zotero-wechat-importer.<provider>.*`。
+- API Key 以明文写入本机 Zotero 首选项；旧版 `apiKey` 和 `model` 首选项会迁移到 DeepSeek 配置。
+- 模型请求使用 HTTPS OpenAI 兼容的 `/chat/completions` 接口。MiMo 使用 `api-key` 请求头，其余服务使用 Bearer 鉴权。
 - 错误日志只记录经过清洗的 HTTP 状态或错误消息，不记录请求头和 API Key。
 
 ## 网络与超时
@@ -127,7 +132,7 @@ score = 2 × |tokens(A) ∩ tokens(B)| / (|tokens(A)| + |tokens(B)|)
 | 请求 | 超时 |
 | --- | ---: |
 | 微信 HTML | 45 秒 |
-| DeepSeek Chat Completions | 120 秒 |
+| AI 服务 Chat Completions | 120 秒；设置页连接测试 30 秒 |
 | PubMed / Crossref JSON | 45 秒 |
 
 多条候选按顺序查询，并在候选间加入短暂延迟，以减少对公共数据库的瞬时请求压力。
@@ -138,9 +143,8 @@ score = 2 × |tokens(A) ∩ tokens(B)| / (|tokens(A)| + |tokens(B)|)
 - 不解析正文图片中的题名、表格或参考文献；
 - 不允许把未核实的模型输出直接保存成 Zotero 条目；
 - 不保存微信网页条目或快照；
-- 不下载论文 PDF；
 - 不向项目作者服务器发送遥测；
-- 不提供 DeepSeek 以外的 API Endpoint 配置。
+- 不承诺每篇论文都能获取全文。
 
 ## 测试与发布
 
@@ -149,7 +153,7 @@ score = 2 × |tokens(A) ∩ tokens(B)| / (|tokens(A)| + |tokens(B)|)
 - `manifest.json` 与 `updates.json` 版本一致性检查；
 - JavaScript 语法检查；
 - `wechat-core.js` 单元测试；
-- XHTML XML 解析检查；
+- 两个 XHTML 文件的 XML 解析检查；
 - 发布所需文件存在性检查。
 
 `./scripts/build.sh` 在临时目录中复制发布文件，统一时间戳后生成确定性的 XPI。推送 `v*` 标签时，GitHub Actions 会验证标签版本、构建 XPI 并发布到 GitHub Releases。

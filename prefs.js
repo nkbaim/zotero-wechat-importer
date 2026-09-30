@@ -1,0 +1,13 @@
+pref("extensions.zotero-wechat-importer.provider", "deepseek");
+pref("extensions.zotero-wechat-importer.deepseek.apiKey", "");
+pref("extensions.zotero-wechat-importer.deepseek.baseURL", "https://api.deepseek.com");
+pref("extensions.zotero-wechat-importer.deepseek.model", "deepseek-flash");
+pref("extensions.zotero-wechat-importer.qwen.apiKey", "");
+pref("extensions.zotero-wechat-importer.qwen.baseURL", "https://dashscope.aliyuncs.com/compatible-mode/v1");
+pref("extensions.zotero-wechat-importer.qwen.model", "qwen-plus");
+pref("extensions.zotero-wechat-importer.zhipu.apiKey", "");
+pref("extensions.zotero-wechat-importer.zhipu.baseURL", "https://open.bigmodel.cn/api/paas/v4");
+pref("extensions.zotero-wechat-importer.zhipu.model", "glm-4.7-flash");
+pref("extensions.zotero-wechat-importer.mimo.apiKey", "");
+pref("extensions.zotero-wechat-importer.mimo.baseURL", "https://api.xiaomimimo.com/v1");
+pref("extensions.zotero-wechat-importer.mimo.model", "mimo-v2.6-pro");

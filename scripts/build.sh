@@ -13,7 +13,7 @@ trap 'rm -rf "$staging"' EXIT
 
 mkdir -p dist
 rm -f "$artifact"
-cp bootstrap.js manifest.json icon.svg "$staging/"
+cp bootstrap.js manifest.json prefs.js icon.svg "$staging/"
 cp -R content "$staging/"
 find "$staging" -exec touch -t 198001010000 {} +
 (

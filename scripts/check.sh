@@ -19,13 +19,15 @@ node --check bootstrap.js
 node --check content/wechat-importer.js
 node --check content/wechat-core.js
 node --check content/wechat-import.js
+node --check content/preferences.js
 node tests/core.test.js
-python3 -c 'import xml.etree.ElementTree as ET; ET.parse("content/wechat-import.xhtml")'
+node tests/integration.test.js
+python3 -c 'import xml.etree.ElementTree as ET; ET.parse("content/wechat-import.xhtml"); ET.parse("content/preferences.xhtml")'
 
 required_files=(
-  bootstrap.js manifest.json icon.svg
+  bootstrap.js manifest.json prefs.js icon.svg
   content/wechat-importer.js content/wechat-core.js content/wechat-import.xhtml
-  content/wechat-import.js content/wechat-import.css
+  content/wechat-import.js content/wechat-import.css content/preferences.xhtml content/preferences.js
 )
 for file in "${required_files[@]}"; do test -s "$file"; done
 echo "Checks passed."
