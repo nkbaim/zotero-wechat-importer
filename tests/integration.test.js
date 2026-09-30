@@ -64,7 +64,39 @@ async function main() {
     assert.equal(request.url, endpoints[id]);
     assert.equal(request.options.headers[id === "mimo" ? "api-key" : "Authorization"],
       id === "mimo" ? `${id}-key` : `Bearer ${id}-key`);
+    assert.equal(request.options.responseType, "json");
   }
+
+  const elements = new Map();
+  const element = (id) => {
+    if (!elements.has(id)) elements.set(id, { value: "", hidden: false, textContent: "", style: {} });
+    return elements.get(id);
+  };
+  const preferenceContext = {
+    document: { getElementById: element },
+    Zotero: zotero
+  };
+  preferenceContext.window = preferenceContext;
+  vm.runInNewContext(fs.readFileSync("content/preferences.js", "utf8"), preferenceContext);
+  const ui = preferenceContext.WeChatImporterPreferences;
+  preferences.set(`${prefix}provider`, "qwen");
+  ui.init();
+  assert.equal(element("wechat-importer-provider").value, "qwen");
+  assert.equal(element("wechat-importer-qwen-settings").hidden, false);
+  assert.equal(element("wechat-importer-deepseek-settings").hidden, true);
+  element("wechat-importer-provider").value = "mimo";
+  ui.updateProviderVisibility();
+  assert.equal(element("wechat-importer-mimo-settings").hidden, false);
+  assert.equal(element("wechat-importer-qwen-settings").hidden, true);
+  await ui.testConnection();
+  assert.match(element("wechat-importer-test-status").textContent, /请完整填写 MiMo/);
+  element("wechat-importer-mimo-api-key").value = "test-key";
+  element("wechat-importer-mimo-base-url").value = "https://api.xiaomimimo.com/v1";
+  element("wechat-importer-mimo-model").value = "mimo-v2.6-pro";
+  zotero.WeChatImporter.sendChatRequest = async () => ({ choices: [{ message: { content: "OK" } }] });
+  await ui.testConnection();
+  assert.match(element("wechat-importer-test-status").textContent, /连接成功：MiMo/);
+  assert.equal(element("wechat-importer-test-button").disabled, false);
 
   const dialog = context.WeChatImport;
   assert.equal(dialog.getZoteroSelectURL({ libraryID: 2, key: "GROUPKEY" }),

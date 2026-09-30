@@ -1,6 +1,6 @@
 # 使用手册
 
-本手册对应 `zotero-wechat-importer 0.2.x`。插件从微信公众号正文中提取论文线索，通过公开学术数据库核验后导入 Zotero，并让 Zotero 查找可用全文。
+本手册对应 WeChat Papers 0.2.x。插件从微信公众号正文中提取论文线索，通过公开学术数据库核验后导入 Zotero，并让 Zotero 查找可用全文。
 
 ## 1. 使用前准备
 
@@ -34,7 +34,7 @@
 
 ### 卸载
 
-在“工具 → 插件”中找到插件并选择移除。若保存过 API Key，可先在 Zotero 设置的“微信公众号文献导入”页面清空对应服务的 Key。
+在“工具 → 插件”中找到插件并选择移除。若保存过 API Key，可先在 Zotero 设置的“WeChat Papers”页面清空对应服务的 Key。
 
 ## 3. 选择导入位置
 
@@ -50,8 +50,6 @@
 ```
 
 如果目标不正确，请关闭插件窗口，在 Zotero 左侧重新选择文库或分类，再重新打开插件。
-
-![插件主界面](images/main-window.png)
 
 ## 4. 提取微信公众号文章
 
@@ -88,7 +86,7 @@ https://mp.weixin.qq.com/...
 
 ## 5. 配置 AI 服务
 
-打开 Zotero 设置，在左侧选择“微信公众号文献导入”。搜索窗口中不再填写 API Key。
+打开 Zotero 设置，在左侧选择“WeChat Papers”。搜索窗口中不再填写 API Key。
 
 1. 在“当前服务”中选择 DeepSeek、Qwen、智谱 GLM 或 MiMo。
 2. 填写该服务的 API Key；确认 API 地址和模型名。设置页提供各服务的默认值。
@@ -197,7 +195,7 @@ https://mp.weixin.qq.com/...
 
 ### “请先在 Zotero 设置中配置 API Key、地址和模型”
 
-打开 Zotero 设置的“微信公众号文献导入”页面，填写当前服务的配置并测试连接。Key 前后多余空格会被自动去除。
+打开 Zotero 设置的“WeChat Papers”页面，填写当前服务的配置并测试连接。Key 前后多余空格会被自动去除。
 
 ### “分析失败：HTTP 401”
 

@@ -3,9 +3,9 @@
     "zotero-wechat-importer@duyang.dev": {
       "updates": [
         {
-          "version": "0.2.0",
-          "update_link": "https://github.com/nkbaim/zotero-wechat-importer/releases/download/v0.2.0/zotero-wechat-importer-0.2.0.xpi",
-          "update_hash": "sha256:accae175b5a4a0da7d97b8df2572f2879b76ea46db6b9252aee2bedd9719010a",
+          "version": "0.2.1",
+          "update_link": "https://github.com/nkbaim/zotero-wechat-importer/releases/download/v0.2.1/zotero-wechat-importer-0.2.1.xpi",
+          "update_hash": "sha256:89bc06467043db95f6702bcd6eefd677d0121ad30f1d3a8bdeb08d76fabd2be0",
           "applications": {
             "zotero": {
               "strict_min_version": "8.999",

@@ -1,9 +1,11 @@
-var WeChatImporterPreferences = {
+window.WeChatImporterPreferences = {
   providerIDs: ["deepseek", "qwen", "zhipu", "mimo"],
 
   init() {
     const provider = document.getElementById("wechat-importer-provider");
-    if (!this.providerIDs.includes(provider.value)) provider.value = "deepseek";
+    const saved = Zotero.Prefs.get("extensions.zotero-wechat-importer.provider", true);
+    if (this.providerIDs.includes(saved)) provider.value = saved;
+    else provider.value = "deepseek";
     this.updateProviderVisibility();
   },
 
@@ -12,7 +14,12 @@ var WeChatImporterPreferences = {
     for (const id of this.providerIDs) {
       document.getElementById(`wechat-importer-${id}-settings`).hidden = id !== selected;
     }
-    document.getElementById("wechat-importer-test-status").textContent = "";
+    this.setStatus("", false);
+  },
+
+  openExternalLink(event) {
+    event.preventDefault();
+    Zotero.launchURL(event.currentTarget.href);
   },
 
   async testConnection() {
@@ -25,28 +32,39 @@ var WeChatImporterPreferences = {
       model: document.getElementById(`wechat-importer-${id}-model`).value.trim()
     };
     const button = document.getElementById("wechat-importer-test-button");
-    const status = document.getElementById("wechat-importer-test-status");
     if (!provider.apiKey || !provider.baseURL || !provider.model) {
-      status.textContent = "请完整填写 API Key、API 地址和模型名";
+      this.setStatus(`请完整填写 ${provider.label} 的 API Key、API 地址和模型名`, true);
       return;
     }
     button.disabled = true;
-    status.textContent = `正在连接 ${provider.label}...`;
+    button.label = "正在测试…";
+    this.setStatus(`正在连接 ${provider.label}…`, false);
     try {
       const body = Zotero.WeChatImporter.prepareChatBody({
         model: provider.model,
         messages: [{ role: "user", content: "Reply with exactly: OK" }],
-        max_tokens: 128,
+        max_tokens: 512,
         stream: false
       }, provider);
       const data = await Zotero.WeChatImporter.sendChatRequest(provider, body, 30000);
-      if (!data?.choices?.[0]?.message?.content) throw new Error("模型未返回文本");
-      status.textContent = `连接成功：${provider.label} / ${provider.model}`;
+      const reply = Zotero.WeChatImporter.extractAssistantText(data);
+      if (!reply) throw new Error("模型已响应，但未返回文本");
+      this.setStatus(`连接成功：${provider.label} / ${provider.model}（${reply.replace(/\s+/g, " ").slice(0, 80)}）`, false, true);
     } catch (error) {
-      const code = error?.status || error?.xmlhttp?.status;
-      status.textContent = `连接失败：${code ? `HTTP ${code}` : error?.message || String(error)}`;
+      this.setStatus(`连接失败：${error?.message || String(error)}`, true);
     } finally {
       button.disabled = false;
+      button.label = "测试当前模型连接";
     }
+  },
+
+  setStatus(message, isError, isSuccess = false) {
+    const status = document.getElementById("wechat-importer-test-status");
+    status.textContent = message;
+    status.style.color = isError
+      ? "var(--fill-danger, #c62828)"
+      : isSuccess
+        ? "var(--fill-success, #2e7d32)"
+        : "var(--fill-secondary, currentColor)";
   }
 };

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icon.svg" alt="WeChat Article Reference Importer logo" width="112" height="112">
+  <img src="icon.svg" alt="WeChat Papers logo" width="112" height="112">
 </p>
 
-<h1 align="center">zotero-wechat-importer</h1>
+<h1 align="center">WeChat Papers</h1>
 
 <p align="center">
   从微信公众号文章中识别学术论文，经 PubMed / Crossref 核验后导入 Zotero。
@@ -18,7 +18,7 @@
 
 不少微信公众号文章会解读或引用学术论文，但正文中的文献线索并不总是完整：可能只有题名、作者、期刊截图、DOI，或者只在某段话里提到研究结论。逐篇复制关键词、打开数据库检索、核对题录再导入 Zotero，过程很容易中断。
 
-`zotero-wechat-importer` 把这条流程放进 Zotero：
+WeChat Papers（项目仓库 `zotero-wechat-importer`）把这条流程放进 Zotero：
 
 ```text
 微信公众号链接 → 提取正文 → 所选 AI 服务识别文献线索
@@ -32,9 +32,7 @@ AI 模型**只负责提取检索线索**，不会直接生成最终题录。可�
 
 ## 界面
 
-![微信公众号文献导入主界面](docs/images/main-window.png)
-
-窗口顶部会显示当前导入目标。请在打开插件前，先在 Zotero 左侧选择正确的文库或分类。
+导入窗口顶部显示当前目标文库或分类。模型、API 地址和 Key 在 Zotero 设置的“WeChat Papers”页面管理；请在打开导入窗口前选择正确的文库或分类。
 
 ## 核心功能
 
@@ -64,13 +62,20 @@ AI 模型**只负责提取检索线索**，不会直接生成最终题录。可�
 
 ### 2. 配置 AI 服务
 
-打开 Zotero 设置，选择左侧“微信公众号文献导入”插件设置页：
+打开 Zotero 设置，选择左侧“WeChat Papers”插件设置页：
 
 1. 选择 DeepSeek、Qwen、智谱 GLM 或 MiMo。
-2. 填写该服务的 API Key；按需要调整 API 基础地址和模型名。
-3. 点击“测试当前模型连接”。设置会保存在本机 Zotero 首选项中，其中 API Key **不加密**。
+2. 在“AI 模型设置”中填写该服务的 API Key；按需要调整 API 基础地址和模型名。
+3. 点击“测试当前模型连接”，确认显示“连接成功”后再使用导入窗口。
 
-插件直接连接所选服务，不经过项目作者服务器。已有版本保存过的 DeepSeek Key 和模型名会在升级时迁移到新设置页。
+| 服务 | 默认 API 基础地址 | 默认模型 |
+| --- | --- | --- |
+| DeepSeek | `https://api.deepseek.com` | `deepseek-flash` |
+| Qwen（通义千问） | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
+| 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.7-flash` |
+| MiMo（小米） | `https://api.xiaomimimo.com/v1` | `mimo-v2.6-pro` |
+
+各服务分别保存 Key、地址和模型名，切换“当前服务”不会覆盖其他服务的配置。插件会在基础地址后补全 `/chat/completions`；如服务商提供专属地址，也可在对应配置中替换。测试连接会发送一条简短请求，可能产生少量 API 用量。设置保存在本机 Zotero 首选项中，API Key **不加密**，也不会经过项目作者服务器；请勿在共享设备上保存个人 Key。已有版本保存过的 DeepSeek Key 和模型名会在升级时迁移到新设置页。更多配置细节见[使用手册](docs/usage.md#5-配置-ai-服务)。
 
 ### 3. 提取、核验并导入
 

@@ -22,7 +22,7 @@ async function startup({ id, rootURI }) {
     pluginID: id,
     src: `${normalizedRootURI}content/preferences.xhtml`,
     scripts: [`${normalizedRootURI}content/preferences.js`],
-    label: "微信公众号文献导入",
+    label: "WeChat Papers",
     image: `${normalizedRootURI}icon.svg`
   });
   await Zotero.WeChatImporter.startup();

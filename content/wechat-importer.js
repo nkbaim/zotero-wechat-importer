@@ -61,17 +61,25 @@ var WeChatImporter = {
     const endpoint = baseURL.endsWith("/chat/completions")
       ? baseURL
       : `${baseURL}/chat/completions`;
-    const response = await Zotero.HTTP.request("POST", endpoint, {
-      timeout,
-      headers: {
-        "Content-Type": "application/json",
-        ...(provider.id === "mimo"
-          ? { "api-key": provider.apiKey }
-          : { Authorization: `Bearer ${provider.apiKey}` })
-      },
-      body: JSON.stringify(body)
-    });
-    const data = response.responseText || response.response;
+    let response;
+    try {
+      response = await Zotero.HTTP.request("POST", endpoint, {
+        timeout,
+        headers: {
+          "Content-Type": "application/json",
+          ...(provider.id === "mimo"
+            ? { "api-key": provider.apiKey }
+            : { Authorization: `Bearer ${provider.apiKey}` })
+        },
+        body: JSON.stringify(body),
+        responseType: "json"
+      });
+    } catch (error) {
+      const status = error?.xmlhttp?.status || error?.status;
+      throw new Error(`${provider.label} API 请求失败${status ? `（HTTP ${status}）` : ""}`);
+    }
+    const data = response.response ?? response.responseText;
+    if (data == null) throw new Error(`${provider.label} API 返回空响应`);
     return typeof data === "string" ? JSON.parse(data) : data;
   },
 
@@ -80,10 +88,23 @@ var WeChatImporter = {
       body.max_completion_tokens = body.max_tokens;
       delete body.max_tokens;
     }
-    if (["deepseek", "zhipu", "mimo"].includes(provider.id)) {
+    if (provider.id === "zhipu" && /^glm-5\.3(?:-|$)/i.test(provider.model)) {
+      body.thinking = { type: "enabled" };
+      body.reasoning_effort = "low";
+    } else if (["deepseek", "zhipu", "mimo"].includes(provider.id)) {
       body.thinking = { type: "disabled" };
     }
     return body;
+  },
+
+  extractAssistantText(data) {
+    const content = data?.choices?.[0]?.message?.content;
+    if (typeof content === "string") return content.trim();
+    if (Array.isArray(content)) {
+      return content.map((part) => typeof part === "string" ? part : part?.text || "").join("").trim();
+    }
+    const fallback = data?.choices?.[0]?.text ?? data?.output_text;
+    return typeof fallback === "string" ? fallback.trim() : "";
   },
 
   async startup() {

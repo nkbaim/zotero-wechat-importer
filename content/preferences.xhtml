@@ -22,15 +22,19 @@
       border-radius: 5px;
     }
     .wechat-importer-field input { width: min(38em, 75%); }
+    #wechat-importer-provider { width: 12em; }
     .wechat-importer-provider { margin: 12px 0; }
     .wechat-importer-provider h3 { margin: 8px 0; font-size: 1em; }
     .wechat-importer-actions { margin-top: 12px; }
     .wechat-importer-note { color: var(--fill-secondary, #5f6368); font-size: .9em; }
     #wechat-importer-test-status { margin-left: 8px; }
+    .wechat-importer-about { margin-top: 10px; }
+    .wechat-importer-about p { margin: 4px 0; }
   ]]></html:style>
 
   <vbox class="wechat-importer-card">
-    <html:h2>文献线索识别模型</html:h2>
+    <html:h2>AI 模型设置</html:h2>
+    <html:h3>文献线索识别模型</html:h3>
     <html:p>选择用于分析微信公众号正文的服务。每个服务分别保存 API Key、API 地址和模型名。</html:p>
     <hbox class="wechat-importer-field" align="center">
       <label value="当前服务" control="wechat-importer-provider"/>
@@ -75,5 +79,17 @@
       <html:span id="wechat-importer-test-status" role="status"/>
     </hbox>
     <html:p class="wechat-importer-note">API Key 以明文保存在本机 Zotero 首选项中。不要在共享设备上保存个人 Key。</html:p>
+  </vbox>
+
+  <vbox class="wechat-importer-card wechat-importer-about">
+    <html:h2>关于</html:h2>
+    <html:p>WeChat Papers · 0.2.1</html:p>
+    <html:p>从微信公众号文章识别论文线索，经 PubMed / Crossref 核验后导入 Zotero，并查找可用全文。</html:p>
+    <html:p>项目仓库：<html:a href="https://github.com/nkbaim/zotero-wechat-importer" target="_blank" onclick="WeChatImporterPreferences.openExternalLink(event);">github.com/nkbaim/zotero-wechat-importer</html:a></html:p>
+    <html:p>
+      <html:a href="https://github.com/nkbaim/zotero-wechat-importer/releases" target="_blank" onclick="WeChatImporterPreferences.openExternalLink(event);">版本发布</html:a>
+      · <html:a href="https://github.com/nkbaim/zotero-wechat-importer/issues" target="_blank" onclick="WeChatImporterPreferences.openExternalLink(event);">问题反馈</html:a>
+      · <html:a href="https://github.com/nkbaim/zotero-wechat-importer/blob/main/LICENSE" target="_blank" onclick="WeChatImporterPreferences.openExternalLink(event);">MIT License</html:a>
+    </html:p>
   </vbox>
 </vbox>

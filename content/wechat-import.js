@@ -111,7 +111,7 @@ var WeChatImport = {
     const provider = Zotero.WeChatImporter.getProviderConfig();
     const text = document.getElementById("article-text").value.trim();
     if (!provider.apiKey || !provider.baseURL || !provider.model) {
-      this.setStatus(`请先在 Zotero 设置 → 微信公众号文献导入中配置 ${provider.label} 的 API Key、地址和模型`);
+      this.setStatus(`请先在 Zotero 设置 → WeChat Papers 中配置 ${provider.label} 的 API Key、地址和模型`);
       return;
     }
     if (text.length < 80) {
