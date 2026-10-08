@@ -91,6 +91,35 @@
       || cleanString(record.title, 1000).toLocaleLowerCase();
   }
 
+  function weChatImageURL(value, articleURL) {
+    if (!value) return "";
+    try {
+      const url = new URL(value, articleURL);
+      if (url.protocol === "http:") url.protocol = "https:";
+      return url.protocol === "https:" && !url.username && !url.password && !url.port
+        && ["mmbiz.qpic.cn", "mmbiz.qlogo.cn"].includes(url.hostname)
+        ? url.href : "";
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function imageDataURL(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let type = "";
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) type = "image/jpeg";
+    else if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) type = "image/png";
+    else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) type = "image/gif";
+    else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46
+      && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) type = "image/webp";
+    if (!type) throw new Error("图片格式不受支持（仅支持 JPEG、PNG、GIF、WebP）");
+    let binary = "";
+    for (let index = 0; index < bytes.length; index += 8192) {
+      binary += String.fromCharCode(...bytes.subarray(index, index + 8192));
+    }
+    return `data:${type};base64,${btoa(binary)}`;
+  }
+
   const api = {
     cleanString,
     normalizeDOI,
@@ -98,7 +127,9 @@
     titleSimilarity,
     parseJSONContent,
     normalizeCandidates,
-    resultKey
+    resultKey,
+    weChatImageURL,
+    imageDataURL
   };
 
   root.WeChatImporterCore = api;

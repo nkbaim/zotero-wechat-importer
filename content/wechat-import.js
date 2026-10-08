@@ -3,6 +3,10 @@ var WeChatImport = {
   article: null,
   results: [],
   selected: new Map(),
+  selectedImages: new Set(),
+  maxImages: 16,
+  maxImageBytes: 4 * 1024 * 1024,
+  maxTotalImageBytes: 12 * 1024 * 1024,
   busy: false,
 
   init() {
@@ -16,6 +20,7 @@ var WeChatImport = {
       this.fetchArticle();
     });
     document.getElementById("analyze-button").addEventListener("click", () => this.analyzeAndSearch());
+    document.getElementById("include-images").addEventListener("change", () => this.renderArticleImages());
     document.getElementById("select-all").addEventListener("change", (event) => {
       this.selectAll(event.target.checked);
     });
@@ -40,6 +45,13 @@ var WeChatImport = {
 
   async fetchArticle() {
     if (this.busy) return;
+    this.article = null;
+    this.selectedImages.clear();
+    document.getElementById("include-images").checked = false;
+    document.getElementById("article-text").value = "";
+    document.getElementById("article-title").textContent = "文章正文";
+    document.getElementById("article-meta").textContent = "";
+    this.renderArticleImages();
     try {
       const url = this.validateWeChatURL(document.getElementById("url-input").value.trim());
       this.setBusy(true, "正在提取微信公众号文章...");
@@ -56,10 +68,11 @@ var WeChatImport = {
         this.article.date
       ].filter(Boolean).join(" · ") || "已提取正文，可在下方检查或修改";
       document.getElementById("article-text").value = this.article.text;
+      this.renderArticleImages();
       document.getElementById("article-card").hidden = false;
       document.getElementById("empty-state").hidden = true;
       document.getElementById("analyze-button").disabled = false;
-      this.setStatus(`已提取正文 ${this.article.text.length.toLocaleString()} 字符`);
+      this.setStatus(`已提取正文 ${this.article.text.length.toLocaleString()} 字符、图片 ${this.article.images.length} 张`);
     } catch (error) {
       this.logError(error);
       this.setStatus(`提取失败：${this.errorMessage(error)}。可在正文框中手动粘贴文章内容。`);
@@ -76,13 +89,21 @@ var WeChatImport = {
     const content = doc.querySelector("#js_content, .rich_media_content");
     if (!content) throw new Error("页面中没有找到文章正文，可能触发了微信访问验证");
 
+    const images = [...new Set([...content.querySelectorAll("img")].map((image) => {
+      if (Number(image.getAttribute("width")) > 0 && Number(image.getAttribute("width")) < 64) return "";
+      if (Number(image.getAttribute("height")) > 0 && Number(image.getAttribute("height")) < 64) return "";
+      return ["data-src", "data-original", "src"]
+        .map((attribute) => WeChatImporterCore.weChatImageURL(image.getAttribute(attribute), url))
+        .find(Boolean) || "";
+    }).filter(Boolean))];
+
     for (const node of content.querySelectorAll("script, style, noscript")) node.remove();
     for (const node of content.querySelectorAll("br")) node.replaceWith(doc.createTextNode("\n"));
     for (const node of content.querySelectorAll("p, section, div, li, h1, h2, h3")) {
       node.append(doc.createTextNode("\n"));
     }
     const text = this.normalizeArticleText(content.textContent || "");
-    if (text.length < 80) throw new Error("提取到的正文过短，可能不是有效文章页面");
+    if (text.length < 80 && !images.length) throw new Error("提取到的正文过短，且未找到文章图片");
 
     const meta = (property) => doc.querySelector(`meta[property="${property}"]`)?.content?.trim() || "";
     const namedMeta = (name) => doc.querySelector(`meta[name="${name}"]`)?.content?.trim() || "";
@@ -94,7 +115,43 @@ var WeChatImport = {
       const timestamp = html.match(/\bct\s*=\s*["'](\d{10})["']/)?.[1];
       if (timestamp) date = new Date(Number(timestamp) * 1000).toISOString().slice(0, 10);
     }
-    return { url, title: WeChatImporterCore.cleanString(title, 1000), account, author, date, text };
+    return { url, title: WeChatImporterCore.cleanString(title, 1000), account, author, date, text, images };
+  },
+
+  renderArticleImages() {
+    const images = this.article?.images || [];
+    const enabled = document.getElementById("include-images").checked && images.length > 0;
+    const gallery = document.getElementById("article-images");
+    gallery.replaceChildren();
+    document.getElementById("include-images").disabled = images.length === 0;
+    document.getElementById("image-count").textContent = images.length
+      ? `共 ${images.length} 张，已选 ${enabled ? this.selectedImages.size : 0} 张（单次最多 ${this.maxImages} 张）`
+      : "未找到文章图片";
+    gallery.hidden = !enabled;
+    if (!enabled) return;
+    for (const [index, url] of images.entries()) {
+      const label = this.createElement("label");
+      label.className = "image-tile";
+      const checkbox = this.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = this.selectedImages.has(url);
+      checkbox.setAttribute("aria-label", `选择文章图片 ${index + 1}`);
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked && this.selectedImages.size >= this.maxImages) {
+          checkbox.checked = false;
+          this.setStatus(`单次最多选择 ${this.maxImages} 张图片；请取消一张再选择`);
+          return;
+        }
+        checkbox.checked ? this.selectedImages.add(url) : this.selectedImages.delete(url);
+        this.renderArticleImages();
+      });
+      const thumbnail = this.createElement("img");
+      thumbnail.src = url;
+      thumbnail.alt = `文章图片 ${index + 1}`;
+      thumbnail.loading = "lazy";
+      label.append(checkbox, thumbnail);
+      gallery.append(label);
+    }
   },
 
   normalizeArticleText(text) {
@@ -110,12 +167,18 @@ var WeChatImport = {
     if (this.busy) return;
     const provider = Zotero.WeChatImporter.getProviderConfig();
     const text = document.getElementById("article-text").value.trim();
+    const imageURLs = document.getElementById("include-images").checked
+      ? (this.article?.images || []).filter((url) => this.selectedImages.has(url)) : [];
     if (!provider.apiKey || !provider.baseURL || !provider.model) {
       this.setStatus(`请先在 Zotero 设置 → WeChat Papers 中配置 ${provider.label} 的 API Key、地址和模型`);
       return;
     }
-    if (text.length < 80) {
-      this.setStatus("正文过短，请先提取文章或手动粘贴完整正文");
+    if (text.length < 80 && !imageURLs.length) {
+      this.setStatus("正文过短且未选择图片，请先提取文章、选择图片或手动粘贴正文");
+      return;
+    }
+    if (imageURLs.length && !provider.visionModel) {
+      this.setStatus(`请先在 Zotero 设置 → WeChat Papers 中配置 ${provider.label} 的看图模型`);
       return;
     }
 
@@ -124,9 +187,16 @@ var WeChatImport = {
     this.renderResults();
     this.setBusy(true, `正在使用 ${provider.label} 识别文献线索...`);
     try {
-      const candidates = await this.extractCandidates(provider, text);
+      const { imageDataURLs, skipped } = await this.loadArticleImages(imageURLs);
+      if (imageURLs.length && !imageDataURLs.length) {
+        throw new Error("所选图片均无法读取；请重新选择图片，或关闭图片识别后仅分析正文");
+      }
+      this.setStatus(`正在使用 ${provider.label} 分析正文和 ${imageDataURLs.length} 张图片...`);
+      const candidates = await this.extractCandidates(provider, text, imageDataURLs);
+      const imageSummary = imageURLs.length
+        ? `；已分析图片 ${imageDataURLs.length} 张${skipped ? `，跳过 ${skipped} 张` : ""}` : "";
       if (!candidates.length) {
-        this.setStatus(`${provider.label} 未识别出可检索的文献线索`);
+        this.setStatus(`${provider.label} 未识别出可检索的文献线索${imageSummary}`);
         return;
       }
 
@@ -149,7 +219,7 @@ var WeChatImport = {
       }
 
       const verified = this.results.filter((item) => item.verified).length;
-      this.setStatus(`核验完成：找到 ${verified} 篇，未核实 ${this.results.length - verified} 条`);
+      this.setStatus(`核验完成：找到 ${verified} 篇，未核实 ${this.results.length - verified} 条${imageSummary}`);
     } catch (error) {
       this.logError(error);
       this.setStatus(`分析失败：${this.errorMessage(error)}`);
@@ -158,34 +228,80 @@ var WeChatImport = {
     }
   },
 
-  async extractCandidates(provider, articleText) {
+  async loadArticleImages(urls) {
+    const imageDataURLs = [];
+    let skipped = 0;
+    let totalBytes = 0;
+    for (let offset = 0; offset < urls.length; offset += 4) {
+      this.setStatus(`正在读取文章图片 ${offset + 1}–${Math.min(offset + 4, urls.length)} / ${urls.length}...`);
+      const responses = await Promise.all(urls.slice(offset, offset + 4).map(async (url) => {
+        try {
+          return await Zotero.HTTP.request("GET", url, {
+            timeout: 20000,
+            responseType: "arraybuffer",
+            headers: { Referer: this.article.url }
+          });
+        } catch (error) {
+          this.logError(error);
+          return null;
+        }
+      }));
+      for (const response of responses) {
+        try {
+          const buffer = response?.response;
+          if (!buffer || typeof buffer.byteLength !== "number" || !buffer.byteLength) {
+            throw new Error("图片返回内容为空");
+          }
+          if (buffer.byteLength > this.maxImageBytes
+            || totalBytes + buffer.byteLength > this.maxTotalImageBytes) {
+            throw new Error("图片超过单张 4 MB 或本次总计 12 MB 的限制");
+          }
+          imageDataURLs.push(WeChatImporterCore.imageDataURL(buffer));
+          totalBytes += buffer.byteLength;
+        } catch (error) {
+          skipped++;
+          if (response) this.logError(error);
+        }
+      }
+    }
+    return { imageDataURLs, skipped };
+  },
+
+  async extractCandidates(provider, articleText, imageDataURLs = []) {
     const articleTitle = this.article?.title || document.getElementById("article-title").textContent || "";
     const sourceURL = this.article?.url || document.getElementById("url-input").value.trim();
     const prompt = [
-      "请从下面的微信公众号文章中识别明确提及、解读或引用的学术论文。不要把一般话题扩写成论文，不要猜测不存在的标识符。",
+      "请从下面的微信公众号文章正文和附图中识别明确提及、解读或引用的学术论文。图片中可能有论文题名、期刊页或参考文献。不要把装饰图扩写成论文，不要猜测不存在的标识符。",
       "只输出 JSON，格式必须是：",
-      '{"references":[{"title":"论文原题名","authors":["作者"],"journal":"期刊","year":"年份","doi":"","pmid":"","query":"用于学术数据库检索的短语","evidence":"微信正文中支持该判断的简短原文"}]}',
+      '{"references":[{"title":"论文原题名","authors":["作者"],"journal":"期刊","year":"年份","doi":"","pmid":"","query":"用于学术数据库检索的短语","evidence":"正文或图片中支持判断的简短原文；图片注明序号"}]}',
       "不确定的字段使用空字符串；没有论文时返回 {\"references\":[]}；最多 30 条。",
       `微信文章标题：${articleTitle}`,
       `来源链接：${sourceURL}`,
       "正文：",
       articleText.slice(0, 60000)
     ].join("\n\n");
+    const model = imageDataURLs.length ? provider.visionModel : provider.model;
+    const userContent = imageDataURLs.length
+      ? [{ type: "text", text: prompt }, ...imageDataURLs.flatMap((url, index) => [
+        { type: "text", text: `文章图片 ${index + 1}：请读取其中可见的论文信息。` },
+        { type: "image_url", image_url: { url } }
+      ])]
+      : prompt;
     const body = Zotero.WeChatImporter.prepareChatBody({
-      model: provider.model,
+      model,
       messages: [
         {
           role: "system",
-          content: "你是严谨的学术文献线索抽取助手。所有输出必须是合法 JSON，且只能依据用户提供的正文。"
+          content: "你是严谨的学术文献线索抽取助手。所有输出必须是合法 JSON，且只能依据用户提供的正文和图片。"
         },
-        { role: "user", content: prompt }
+        { role: "user", content: userContent }
       ],
       max_tokens: 6000,
       stream: false
-    }, provider);
+    }, { ...provider, model });
     if (provider.id === "deepseek") body.response_format = { type: "json_object" };
     const data = await Zotero.WeChatImporter.sendChatRequest(provider, body);
-    const content = data.choices?.[0]?.message?.content;
+    const content = Zotero.WeChatImporter.extractAssistantText(data);
     if (!content) throw new Error(`${provider.label} 未返回分析内容`);
     return WeChatImporterCore.normalizeCandidates(content);
   },
@@ -386,7 +502,7 @@ var WeChatImport = {
   copyZoteroURL(url) {
     try {
       Zotero.Utilities.Internal.copyTextToClipboard(url);
-      this.setStatus(`已复制 Zotero 链接：${url}`);
+      this.setStatus("已复制");
     } catch (error) {
       this.logError(error);
       this.setStatus(`复制失败：${this.errorMessage(error)}`);

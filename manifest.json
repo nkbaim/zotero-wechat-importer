@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "WeChat Papers",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Find papers in WeChat articles with AI, verify them, import them into Zotero, and find available full text.",
   "author": "Duyang",
   "homepage_url": "https://github.com/nkbaim/zotero-wechat-importer",

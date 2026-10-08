@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <?xml-stylesheet href="chrome://zotero/skin/zotero.css" type="text/css"?>
-<?xml-stylesheet href="wechat-import.css" type="text/css"?>
 
 <window
   id="wechat-import-window"
@@ -13,8 +12,475 @@
   persist="screenX screenY width height"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
+  xmlns:svg="http://www.w3.org/2000/svg"
   style="display: flex;"
 >
+  <html:style><![CDATA[
+:root {
+  color-scheme: light dark;
+  font: menu;
+  background: #f3f7f5;
+  color: var(--fill-primary, #1f2328);
+}
+
+* { box-sizing: border-box; }
+
+window {
+  min-width: 820px;
+  min-height: 620px;
+  background: #f3f7f5;
+}
+
+button, input, textarea { font: inherit; }
+
+button {
+  min-height: 36px;
+  padding: 6px 15px;
+  border: 1px solid #16875b;
+  border-radius: 8px;
+  background: #16875b;
+  color: #fff;
+  cursor: default;
+  font-weight: 600;
+}
+
+button:hover:not(:disabled) { background: #126f4b; }
+button:disabled { opacity: 0.5; }
+
+button.secondary {
+  background: var(--material-background, #fff);
+  border-color: color-mix(in srgb, currentColor 18%, transparent);
+  color: var(--fill-primary, #1f2328);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+#app-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app-header {
+  padding: 18px 24px 20px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  background: linear-gradient(125deg, #e7f6ef 0%, #f7fbf9 58%, #fff 100%);
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 18px;
+}
+
+.empty-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: #16875b;
+  color: #fff;
+  font-weight: 750;
+}
+
+.brand-mark { display: block; flex: none; width: 46px; height: 46px; padding: 8px; border: 1px solid #cde7d9; border-radius: 13px; background: #fff; }
+.title-block { min-width: 0; }
+.eyebrow { color: #16875b; font-size: 10px; font-weight: 750; letter-spacing: .08em; }
+h1, h2 { margin: 0; }
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+#target-label,
+#article-meta,
+.legend {
+  color: var(--fill-secondary, #5f6368);
+  font-size: 12px;
+}
+
+.header-steps {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.header-steps span {
+  padding: 6px 10px;
+  border: 1px solid #cde7d9;
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 72%, transparent);
+  color: #386a54;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.source-panel {
+  padding: 13px 15px 12px;
+  border: 1px solid #d8e8df;
+  border-radius: 12px;
+  background: var(--material-background, #fff);
+  box-shadow: 0 5px 20px color-mix(in srgb, #244b36 5%, transparent);
+}
+
+.source-panel label,
+.text-panel label,
+.image-toggle { font-size: 12px; font-weight: 700; }
+
+#source-form {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.source-note { margin-top: 7px; color: var(--fill-secondary, #5f6368); font-size: 11px; }
+
+#url-input,
+#article-text {
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 8px;
+  background: var(--material-background, #fff);
+  color: inherit;
+}
+
+#url-input {
+  min-height: 36px;
+  padding: 7px 10px;
+}
+
+#url-input:focus-visible,
+#article-text:focus-visible { outline: 2px solid #16875b; outline-offset: 1px; }
+
+#workspace {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 14px;
+  min-height: 0;
+  padding: 18px 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.card {
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 12px;
+  background: var(--material-background, #fff);
+  overflow: hidden;
+  box-shadow: 0 5px 18px color-mix(in srgb, #193527 4%, transparent);
+}
+
+.card[hidden], #results-section[hidden] { display: none; }
+
+.card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px 11px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 9%, transparent);
+}
+
+#article-meta { margin-top: 4px; }
+
+.article-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  padding: 14px 16px 10px;
+}
+
+.text-panel,
+.images-panel { min-width: 0; }
+
+.text-panel label { display: block; margin-bottom: 7px; }
+
+#article-text {
+  display: block;
+  width: 100%;
+  min-height: 165px;
+  max-height: 230px;
+  padding: 10px 11px;
+  resize: vertical;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.images-panel {
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--material-background, #fff) 96%, #16875b 4%);
+}
+
+.images-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.image-toggle { display: inline-flex; align-items: center; gap: 6px; }
+.image-toggle input { accent-color: #16875b; }
+#image-count { color: var(--fill-secondary, #5f6368); font-size: 10px; text-align: right; }
+#article-images {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  max-height: 145px;
+  margin-top: 9px;
+  overflow: auto;
+}
+#article-images[hidden] { display: none; }
+.image-tile { position: relative; display: block; height: 70px; border: 1px solid #cfded5; border-radius: 6px; overflow: hidden; background: #fff; }
+.image-tile img { width: 100%; height: 100%; object-fit: contain; }
+.image-tile input { position: absolute; z-index: 1; top: 4px; left: 4px; margin: 0; accent-color: #16875b; }
+.images-help { margin-top: 8px; color: var(--fill-secondary, #5f6368); font-size: 10px; line-height: 1.4; }
+
+#article-card .model-hint {
+  padding: 0 16px 12px;
+  color: var(--fill-secondary, #5f6368);
+  font-size: 11px;
+}
+
+.select-all-label,
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.results-card {
+  display: grid;
+  grid-template-rows: auto auto;
+  min-height: 0;
+}
+
+#result-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 7px 16px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background: color-mix(in srgb, var(--material-background, #fff) 94%, #16875b 6%);
+  font-size: 12px;
+}
+
+#table-scroll { overflow-x: auto; overflow-y: clip; }
+
+#results-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.select-column { width: 42px; }
+.title-column { width: 51%; }
+.publication-column { width: 18%; }
+.id-column { width: 170px; }
+.status-column { width: 100px; }
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 32px;
+  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  background: var(--material-background, #f7f7f8);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+tr:hover td { background: color-mix(in srgb, #16875b 5%, transparent); }
+tr.unresolved td { color: var(--fill-secondary, #6d7278); }
+tr.existing td {
+  color: var(--fill-secondary, #6d7278);
+  background: color-mix(in srgb, currentColor 3%, transparent);
+}
+
+.title-text {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.title-text a { color: inherit; text-decoration: none; }
+.title-text a:hover { color: #16875b; text-decoration: underline; }
+
+.author-text,
+.journal-text,
+.year-text,
+.identifier-text,
+.reason-text {
+  color: var(--fill-secondary, #5f6368);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.evidence-text {
+  display: -webkit-box;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--fill-secondary, #5f6368);
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.verified-badge,
+.unresolved-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.verified-badge {
+  border: 1px solid color-mix(in srgb, #16875b 55%, transparent);
+  background: color-mix(in srgb, #16875b 12%, transparent);
+  color: #126b49;
+}
+
+.unresolved-badge {
+  border: 1px solid color-mix(in srgb, #a46416 55%, transparent);
+  background: color-mix(in srgb, #a46416 12%, transparent);
+  color: #805013;
+}
+
+.reason-text { margin-top: 5px; }
+
+.existing-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.existing-badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, #6d2c91 55%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, #6d2c91 14%, transparent);
+  color: #54206f;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+a.zotero-url,
+a.zotero-url:visited {
+  display: inline-block;
+  color: #6d2c91;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+a.zotero-url:hover,
+a.zotero-url:focus-visible {
+  color: #54206f;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+#empty-state {
+  position: absolute;
+  inset: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px dashed #c8dbcf;
+  border-radius: 12px;
+  background: var(--material-background, #fff);
+  color: var(--fill-secondary, #6d7278);
+  text-align: center;
+}
+
+.empty-icon { width: 46px; height: 46px; margin-bottom: 5px; border-radius: 14px; font-size: 20px; }
+#empty-state strong { color: var(--fill-primary, #1f2328); font-size: 16px; }
+#empty-state span { font-size: 12px; }
+
+#empty-state[hidden] { display: none; }
+
+#app-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 62px;
+  padding: 10px 24px;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  background: var(--material-background, #fff);
+}
+
+#status-text {
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 14px;
+  color: var(--fill-secondary, #5f6368);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: radial-gradient(circle at 4px 50%, #16875b 3px, transparent 4px) no-repeat;
+}
+
+#selected-count {
+  min-width: 72px;
+  font-size: 12px;
+  text-align: right;
+}
+
+@media (max-width: 940px) {
+  .header-steps { display: none; }
+  .article-content { grid-template-columns: minmax(0, 1fr) 240px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root, window, #app-footer, .card, .source-panel, #empty-state,
+  #url-input, #article-text, button.secondary {
+    background-color: #242628;
+  }
+  #app-header { background: linear-gradient(125deg, #213d30, #242628 62%); }
+  .images-panel { background: #2b302d; }
+  .header-steps span { border-color: #446858; background: #2b4235; color: #a6d4b9; }
+  .source-panel { border-color: #42634f; }
+  .eyebrow { color: #83d3a5; }
+  #empty-state { border-color: #4d6d57; }
+  .image-tile { background: #353a37; border-color: #55705e; }
+  #result-toolbar, th { background-color: #2b2e30; }
+  :root { color: #e8eaed; }
+  .verified-badge { color: #88d6b4; }
+  .unresolved-badge { color: #e0b170; }
+  .existing-badge { color: #d6a5e9; }
+  a.zotero-url, a.zotero-url:visited { color: #d6a5e9; }
+}
+  ]]></html:style>
   <script><![CDATA[
     Services.scriptloader.loadSubScript("chrome://zotero/content/include.js", this);
     Services.scriptloader.loadSubScript(
@@ -29,26 +495,53 @@
 
   <html:main id="app-shell">
     <html:header id="app-header">
-      <html:div class="title-block">
-        <html:h1>WeChat Papers</html:h1>
-        <html:div id="target-label"/>
+      <html:div class="header-top">
+        <svg:svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><svg:path fill="#07C160" d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.27-.027-.407-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z"/></svg:svg>
+        <html:div class="title-block">
+          <html:div class="eyebrow">WECHAT → ZOTERO</html:div>
+          <html:h1>WeChat Papers</html:h1>
+          <html:div id="target-label"/>
+        </html:div>
+        <html:div class="header-steps" aria-label="导入步骤">
+          <html:span>01 提取文章</html:span>
+          <html:span>02 识别线索</html:span>
+          <html:span>03 核验导入</html:span>
+        </html:div>
       </html:div>
-      <html:form id="source-form">
-        <html:input id="url-input" type="url" aria-label="微信公众号文章链接" placeholder="https://mp.weixin.qq.com/s/..." autocomplete="off"/>
-        <html:button id="fetch-button" type="submit">提取文章</html:button>
-      </html:form>
+      <html:div class="source-panel">
+        <html:label for="url-input">微信公众号文章链接</html:label>
+        <html:form id="source-form">
+          <html:input id="url-input" type="url" aria-label="微信公众号文章链接" placeholder="粘贴 https://mp.weixin.qq.com/s/..." autocomplete="off"/>
+          <html:button id="fetch-button" type="submit">提取文章</html:button>
+        </html:form>
+        <html:div class="source-note">自动提取正文和文章图片；若微信要求验证，可手动粘贴正文继续分析。</html:div>
+      </html:div>
     </html:header>
 
     <html:section id="workspace">
       <html:section id="article-card" class="card" hidden="hidden">
         <html:div class="card-heading">
           <html:div>
+            <html:div class="eyebrow">01 / 原文检查</html:div>
             <html:h2 id="article-title">文章正文</html:h2>
             <html:div id="article-meta"/>
           </html:div>
           <html:button id="analyze-button" type="button" disabled="disabled">AI 识别并检索文献</html:button>
         </html:div>
-        <html:textarea id="article-text" aria-label="文章正文" placeholder="若微信页面无法直接提取，可在此手动粘贴文章正文。"/>
+        <html:div class="article-content">
+          <html:div class="text-panel">
+            <html:label for="article-text">文章正文 · 可编辑</html:label>
+            <html:textarea id="article-text" aria-label="文章正文" placeholder="若微信页面无法直接提取，可在此手动粘贴文章正文。"/>
+          </html:div>
+          <html:div class="images-panel">
+            <html:div class="images-heading">
+              <html:label class="image-toggle"><html:input id="include-images" type="checkbox" disabled="disabled"/><html:span>识别文章图片</html:span></html:label>
+              <html:span id="image-count">未找到文章图片</html:span>
+            </html:div>
+            <html:div id="article-images" hidden="hidden"/>
+            <html:div class="images-help">勾选含论文题名、DOI 或期刊页的图片；图片会发送给所选 AI 服务。</html:div>
+          </html:div>
+        </html:div>
         <html:div class="model-hint">模型与 API Key：Zotero 设置 → WeChat Papers</html:div>
       </html:section>
 
@@ -83,7 +576,7 @@
         </html:div>
       </html:section>
 
-      <html:div id="empty-state">输入微信公众号文章链接，提取正文后识别其中涉及的学术文献</html:div>
+      <html:div id="empty-state"><html:div class="empty-icon">文</html:div><html:strong>从一篇公众号文章开始</html:strong><html:span>粘贴链接，提取正文与图片，再核验其中的学术文献</html:span></html:div>
     </html:section>
 
     <html:footer id="app-footer">

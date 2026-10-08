@@ -46,7 +46,7 @@ mp.weixin.qq.com
 | `prefs.js` | 各 AI 服务的默认配置 |
 | `content/preferences.xhtml`、`content/preferences.js` | 独立设置页及连接测试 |
 | `content/wechat-import.xhtml` | 窗口结构和控件 |
-| `content/wechat-import.css` | 浅色/深色界面样式 |
+| `content/wechat-import.xhtml` | 导入界面与浅色/深色样式 |
 | `content/wechat-import.js` | 页面提取、AI 调用、PubMed/Crossref 查询、去重和导入 |
 | `content/wechat-core.js` | DOI/PMID 规范化、候选清洗、题名相似度和结果键；可在 Node 中测试 |
 | `tests/core.test.js` | 核心纯函数回归测试 |

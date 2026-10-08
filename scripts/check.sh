@@ -27,7 +27,7 @@ python3 -c 'import xml.etree.ElementTree as ET; ET.parse("content/wechat-import.
 required_files=(
   bootstrap.js manifest.json prefs.js icon.svg
   content/wechat-importer.js content/wechat-core.js content/wechat-import.xhtml
-  content/wechat-import.js content/wechat-import.css content/preferences.xhtml content/preferences.js
+  content/wechat-import.js content/preferences.xhtml content/preferences.js
 )
 for file in "${required_files[@]}"; do test -s "$file"; done
 echo "Checks passed."

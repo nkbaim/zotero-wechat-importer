@@ -54,7 +54,7 @@ window.WeChatImporterPreferences = {
       this.setStatus(`连接失败：${error?.message || String(error)}`, true);
     } finally {
       button.disabled = false;
-      button.label = "测试当前模型连接";
+      button.label = "测试文本模型连接";
     }
   },
 

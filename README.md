@@ -36,7 +36,10 @@ AI 模型**只负责提取检索线索**，不会直接生成最终题录。可�
 
 ## 核心功能
 
+> 图片识别默认关闭。勾选后，只有你主动选择的文章图片会与正文一起发送给设置中的 AI 服务；AI 仅提取检索线索，文献仍需经 PubMed / Crossref 核验。
+
 - 从 `https://mp.weixin.qq.com/` 文章链接提取标题、公众号、作者、日期和正文
+- 提取正文中的微信图片，预览并选择需要识别的图片；将所选图片与正文一起交给视觉模型提取论文线索
 - 微信页面触发访问验证时，允许手动粘贴正文继续处理
 - 在 Zotero 独立设置页选择 DeepSeek、Qwen、智谱 GLM 或小米 MiMo，分别设置 API Key、地址和模型
 - 使用所选模型提取最多 30 条明确提及或引用的论文线索
@@ -65,24 +68,24 @@ AI 模型**只负责提取检索线索**，不会直接生成最终题录。可�
 打开 Zotero 设置，选择左侧“WeChat Papers”插件设置页：
 
 1. 选择 DeepSeek、Qwen、智谱 GLM 或 MiMo。
-2. 在“AI 模型设置”中填写该服务的 API Key；按需要调整 API 基础地址和模型名。
-3. 点击“测试当前模型连接”，确认显示“连接成功”后再使用导入窗口。
+2. 在“AI 模型设置”中填写该服务的 API Key；按需要调整 API 基础地址、文本模型及看图模型。
+3. 点击“测试文本模型连接”，确认显示“连接成功”后再使用导入窗口。看图模型会在实际识别所选图片时调用。
 
-| 服务 | 默认 API 基础地址 | 默认模型 |
-| --- | --- | --- |
-| DeepSeek | `https://api.deepseek.com` | `deepseek-flash` |
-| Qwen（通义千问） | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
-| 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.7-flash` |
-| MiMo（小米） | `https://api.xiaomimimo.com/v1` | `mimo-v2.6-pro` |
+| 服务 | 默认 API 基础地址 | 文本模型 | 看图模型 |
+| --- | --- | --- | --- |
+| DeepSeek | `https://api.deepseek.com` | `deepseek-flash` | `deepseek-flash` |
+| Qwen（通义千问） | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` | `qwen3-vl-plus` |
+| 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.7-flash` | `glm-5.3-flash` |
+| MiMo（小米） | `https://api.xiaomimimo.com/v1` | `mimo-v2.6-pro` | `mimo-v2.6-pro` |
 
-各服务分别保存 Key、地址和模型名，切换“当前服务”不会覆盖其他服务的配置。插件会在基础地址后补全 `/chat/completions`；如服务商提供专属地址，也可在对应配置中替换。测试连接会发送一条简短请求，可能产生少量 API 用量。设置保存在本机 Zotero 首选项中，API Key **不加密**，也不会经过项目作者服务器；请勿在共享设备上保存个人 Key。已有版本保存过的 DeepSeek Key 和模型名会在升级时迁移到新设置页。更多配置细节见[使用手册](docs/usage.md#5-配置-ai-服务)。
+各服务分别保存 Key、地址和模型名，切换“当前服务”不会覆盖其他服务的配置。插件会在基础地址后补全 `/chat/completions`；如服务商提供专属地址，也可在对应配置中替换。有选中图片时使用“看图模型”，否则使用文本模型。测试按钮只测试文本模型；图片识别需在文章窗口实际运行。测试及图片识别可能产生 API 用量。设置保存在本机 Zotero 首选项中，API Key **不加密**，也不会经过项目作者服务器；请勿在共享设备上保存个人 Key。已有版本保存过的 DeepSeek Key 和模型名会在升级时迁移到新设置页。更多配置细节见[使用手册](docs/usage.md#5-配置-ai-服务)。
 
 ### 3. 提取、核验并导入
 
 1. 在 Zotero 左侧选择目标文库或分类。
 2. 点击文献工具栏中的微信图标，或选择“工具 → 从微信公众号文章导入文献…”。
 3. 粘贴以 `https://mp.weixin.qq.com/` 开头的文章链接，点击“提取文章”。
-4. 检查提取出的正文；必要时可以修改或手动粘贴完整正文。
+4. 检查提取出的正文与图片；可勾选含题名、DOI、期刊页等线索的图片，必要时修改或手动粘贴正文。
 5. 点击“AI 识别并检索文献”。
 6. 根据题名、作者、原文线索、PMID/DOI 和核验来源人工复核结果。
 7. 勾选需要的已核实记录，点击“导入所选文献”；导入后插件会让 Zotero 查找可用全文。
@@ -106,12 +109,14 @@ AI 模型**只负责提取检索线索**，不会直接生成最终题录。可�
 | --- | --- | --- |
 | 文章链接 | 微信公众平台 | 下载公开文章页面 |
 | 文章标题、链接和最多 60,000 字符正文 | 设置中选定的 AI 服务 | 提取文献线索 |
+| 用户勾选的微信文章图片 | 设置中选定的 AI 服务 | 识别图片中的论文信息 |
 | PMID、DOI、题名或检索短语 | NCBI PubMed、Crossref | 核验题录 |
 | API Key | 设置中选定的 AI 服务 | API 鉴权 |
 
 - 插件不包含遥测，不向项目作者发送文章、Key 或 Zotero 文库内容。
 - API Key 在设置页中以明文保存在本机 Zotero 首选项中；可在对应服务的 Key 输入框中删除。
 - 请勿把包含敏感、保密或未公开内容的正文发送给第三方模型服务。
+- 图片识别单次最多勾选 16 张，每张最多 4 MB、总计最多 12 MB；读取失败或不受支持的图片会在状态中计数。
 
 ## 当前边界
 
@@ -137,8 +142,7 @@ AI 模型**只负责提取检索线索**，不会直接生成最终题录。可�
 
 ```text
 content/wechat-importer.js   Zotero 菜单、工具栏和窗口入口
-content/wechat-import.xhtml  插件窗口结构
-content/wechat-import.css    界面样式
+content/wechat-import.xhtml  导入界面与内嵌样式
 content/wechat-import.js     微信提取、AI 识别、检索、去重和导入流程
 content/wechat-core.js       可独立测试的规范化、去重和题名匹配逻辑
 content/preferences.xhtml    Zotero 插件设置界面

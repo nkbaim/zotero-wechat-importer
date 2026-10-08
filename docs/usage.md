@@ -1,6 +1,6 @@
 # 使用手册
 
-本手册对应 WeChat Papers 0.2.x。插件从微信公众号正文中提取论文线索，通过公开学术数据库核验后导入 Zotero，并让 Zotero 查找可用全文。
+本手册对应 WeChat Papers 0.3.0。插件可从微信公众号正文及用户主动选择的文章图片中提取论文线索，通过公开学术数据库核验后导入 Zotero，并让 Zotero 查找可用全文。图片识别默认关闭；只有勾选图片并点击识别后，所选图片才会发送给配置的 AI 服务。
 
 ## 1. 使用前准备
 
@@ -63,14 +63,17 @@
 https://mp.weixin.qq.com/...
 ```
 
-提取成功后会显示文章标题、公众号/作者、日期和正文编辑框。建议快速检查：
+提取成功后会显示文章标题、公众号/作者、日期、正文编辑框和图片预览。建议快速检查：
 
 - 标题是否属于目标文章；
 - 正文开头和结尾是否完整；
 - 论文题名、DOI、图注或参考文献段落是否包含在正文中；
 - 是否混入大量菜单、推荐阅读或无关内容。
+- 图片中是否出现论文封面、题名、DOI、期刊页面或参考文献；只勾选需要模型读取的图片。
 
 正文可以直接修改。AI 服务读取的是编辑框中的当前内容，而不是最初下载的 HTML。
+
+“识别文章图片”默认关闭，提取后不会自动勾选图片。需要识图时先勾选此项，再手动选择含论文线索的图片；单次最多识别 16 张。图片会由 Zotero 下载后以图像数据发送给当前服务的看图模型，单张不得超过 4 MB、全部不超过 12 MB。下载失败、格式不支持或超限的图片会被跳过，处理结束时显示数量；若所选图片全部读取失败，插件会提示用户重试，不会悄悄改成纯文本分析。图片识别可能产生额外 API 用量。
 
 ### 微信访问验证导致提取失败
 
@@ -83,23 +86,24 @@ https://mp.weixin.qq.com/...
 5. 点击“AI 识别并检索文献”。
 
 手动粘贴模式下，来源链接仍可保留在顶部输入框中，供模型理解上下文。
+若微信的访问验证同时阻止了图片提取，本版无法从剪贴板自动恢复图片，只能手动补充图片中的文字。
 
 ## 5. 配置 AI 服务
 
 打开 Zotero 设置，在左侧选择“WeChat Papers”。搜索窗口中不再填写 API Key。
 
 1. 在“当前服务”中选择 DeepSeek、Qwen、智谱 GLM 或 MiMo。
-2. 填写该服务的 API Key；确认 API 地址和模型名。设置页提供各服务的默认值。
-3. 点击“测试当前模型连接”。连接成功后返回导入窗口分析文章。
+2. 填写该服务的 API Key；确认 API 地址、文本模型和看图模型。设置页提供各服务的默认值。
+3. 点击“测试文本模型连接”。连接成功后返回导入窗口分析文章。这个按钮不测试看图模型；看图能力需通过实际勾选图片验证。
 
 四个服务分别保存配置；切换服务不会覆盖其他服务的 Key。API 地址填写基础地址，插件会补全 `/chat/completions`；也可以填写完整的请求地址。Qwen 专属 Workspace 和 MiMo Token Plan 地址可在这里配置。
 
-| 服务 | 默认 API 基础地址 | 默认模型 |
-| --- | --- | --- |
-| DeepSeek | `https://api.deepseek.com` | `deepseek-flash` |
-| Qwen | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
-| 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.7-flash` |
-| MiMo | `https://api.xiaomimimo.com/v1` | `mimo-v2.6-pro` |
+| 服务 | 默认 API 基础地址 | 文本模型 | 看图模型 |
+| --- | --- | --- | --- |
+| DeepSeek | `https://api.deepseek.com` | `deepseek-flash` | `deepseek-flash` |
+| Qwen | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` | `qwen3-vl-plus` |
+| 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.7-flash` | `glm-5.3-flash` |
+| MiMo | `https://api.xiaomimimo.com/v1` | `mimo-v2.6-pro` | `mimo-v2.6-pro` |
 
 各服务的 Key 以明文保存在本机 Zotero 首选项中。共享设备上使用后，可在设置页清空相应 Key。升级自 0.1.x 时，旧版保存的 DeepSeek Key 和模型名会迁移到 DeepSeek 设置项。
 
@@ -116,6 +120,7 @@ https://mp.weixin.qq.com/...
 - 微信文章标题；
 - 来源链接；
 - 正文编辑框中最多 60,000 个字符。
+- 勾选并成功读取的文章图片（若有）；有图片时使用“看图模型”，否则使用文本模型。
 
 模型最多返回 30 条候选线索，包括题名、作者、期刊、年份、DOI、PMID、检索短语和原文依据。插件会规范化 DOI/PMID、限制字段长度并删除重复线索。
 

@@ -8,10 +8,10 @@ var WeChatImporter = {
   dialogURI: "chrome://zotero-wechat-importer/content/wechat-import.xhtml",
 
   providers: {
-    deepseek: { label: "DeepSeek", baseURL: "https://api.deepseek.com", model: "deepseek-flash" },
-    qwen: { label: "Qwen（通义千问）", baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
-    zhipu: { label: "智谱 GLM", baseURL: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4.7-flash" },
-    mimo: { label: "MiMo（小米）", baseURL: "https://api.xiaomimimo.com/v1", model: "mimo-v2.6-pro" }
+    deepseek: { label: "DeepSeek", baseURL: "https://api.deepseek.com", model: "deepseek-flash", visionModel: "deepseek-flash" },
+    qwen: { label: "Qwen（通义千问）", baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", visionModel: "qwen3-vl-plus" },
+    zhipu: { label: "智谱 GLM", baseURL: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4.7-flash", visionModel: "glm-5.3-flash" },
+    mimo: { label: "MiMo（小米）", baseURL: "https://api.xiaomimimo.com/v1", model: "mimo-v2.6-pro", visionModel: "mimo-v2.6-pro" }
   },
 
   getPref(name, fallback = "") {
@@ -28,7 +28,8 @@ var WeChatImporter = {
       label: defaults.label,
       apiKey: String(this.getPref(`${id}.apiKey`)).trim(),
       baseURL: String(this.getPref(`${id}.baseURL`, defaults.baseURL)).trim(),
-      model: String(this.getPref(`${id}.model`, defaults.model)).trim()
+      model: String(this.getPref(`${id}.model`, defaults.model)).trim(),
+      visionModel: String(this.getPref(`${id}.visionModel`, defaults.visionModel)).trim()
     };
   },
 

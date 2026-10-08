@@ -35,7 +35,7 @@
   <vbox class="wechat-importer-card">
     <html:h2>AI 模型设置</html:h2>
     <html:h3>文献线索识别模型</html:h3>
-    <html:p>选择用于分析微信公众号正文的服务。每个服务分别保存 API Key、API 地址和模型名。</html:p>
+    <html:p>选择用于分析微信公众号正文与图片的服务。每个服务分别保存 API Key、API 地址和模型名。</html:p>
     <hbox class="wechat-importer-field" align="center">
       <label value="当前服务" control="wechat-importer-provider"/>
       <html:select id="wechat-importer-provider" preference="extensions.zotero-wechat-importer.provider"
@@ -52,12 +52,14 @@
       <hbox class="wechat-importer-field" align="center"><label value="API Key" control="wechat-importer-deepseek-api-key"/><html:input id="wechat-importer-deepseek-api-key" type="password" autocomplete="off" preference="extensions.zotero-wechat-importer.deepseek.apiKey"/></hbox>
       <hbox class="wechat-importer-field" align="center"><label value="API 地址" control="wechat-importer-deepseek-base-url"/><html:input id="wechat-importer-deepseek-base-url" type="url" preference="extensions.zotero-wechat-importer.deepseek.baseURL"/></hbox>
       <hbox class="wechat-importer-field" align="center"><label value="模型" control="wechat-importer-deepseek-model"/><html:input id="wechat-importer-deepseek-model" type="text" preference="extensions.zotero-wechat-importer.deepseek.model"/></hbox>
+      <hbox class="wechat-importer-field" align="center"><label value="看图模型" control="wechat-importer-deepseek-vision-model"/><html:input id="wechat-importer-deepseek-vision-model" type="text" preference="extensions.zotero-wechat-importer.deepseek.visionModel"/></hbox>
     </vbox>
     <vbox id="wechat-importer-qwen-settings" class="wechat-importer-provider" hidden="true">
       <html:h3>Qwen（阿里云百炼）</html:h3>
       <hbox class="wechat-importer-field" align="center"><label value="API Key" control="wechat-importer-qwen-api-key"/><html:input id="wechat-importer-qwen-api-key" type="password" autocomplete="off" preference="extensions.zotero-wechat-importer.qwen.apiKey"/></hbox>
       <hbox class="wechat-importer-field" align="center"><label value="API 地址" control="wechat-importer-qwen-base-url"/><html:input id="wechat-importer-qwen-base-url" type="url" preference="extensions.zotero-wechat-importer.qwen.baseURL"/></hbox>
       <hbox class="wechat-importer-field" align="center"><label value="模型" control="wechat-importer-qwen-model"/><html:input id="wechat-importer-qwen-model" type="text" preference="extensions.zotero-wechat-importer.qwen.model"/></hbox>
+      <hbox class="wechat-importer-field" align="center"><label value="看图模型" control="wechat-importer-qwen-vision-model"/><html:input id="wechat-importer-qwen-vision-model" type="text" preference="extensions.zotero-wechat-importer.qwen.visionModel"/></hbox>
       <html:p class="wechat-importer-note">如使用百炼专属 Workspace 地址，可在这里修改。</html:p>
     </vbox>
     <vbox id="wechat-importer-zhipu-settings" class="wechat-importer-provider" hidden="true">
@@ -65,25 +67,27 @@
       <hbox class="wechat-importer-field" align="center"><label value="API Key" control="wechat-importer-zhipu-api-key"/><html:input id="wechat-importer-zhipu-api-key" type="password" autocomplete="off" preference="extensions.zotero-wechat-importer.zhipu.apiKey"/></hbox>
       <hbox class="wechat-importer-field" align="center"><label value="API 地址" control="wechat-importer-zhipu-base-url"/><html:input id="wechat-importer-zhipu-base-url" type="url" preference="extensions.zotero-wechat-importer.zhipu.baseURL"/></hbox>
       <hbox class="wechat-importer-field" align="center"><label value="模型" control="wechat-importer-zhipu-model"/><html:input id="wechat-importer-zhipu-model" type="text" preference="extensions.zotero-wechat-importer.zhipu.model"/></hbox>
+      <hbox class="wechat-importer-field" align="center"><label value="看图模型" control="wechat-importer-zhipu-vision-model"/><html:input id="wechat-importer-zhipu-vision-model" type="text" preference="extensions.zotero-wechat-importer.zhipu.visionModel"/></hbox>
     </vbox>
     <vbox id="wechat-importer-mimo-settings" class="wechat-importer-provider" hidden="true">
       <html:h3>MiMo（小米）</html:h3>
       <hbox class="wechat-importer-field" align="center"><label value="API Key" control="wechat-importer-mimo-api-key"/><html:input id="wechat-importer-mimo-api-key" type="password" autocomplete="off" preference="extensions.zotero-wechat-importer.mimo.apiKey"/></hbox>
       <hbox class="wechat-importer-field" align="center"><label value="API 地址" control="wechat-importer-mimo-base-url"/><html:input id="wechat-importer-mimo-base-url" type="url" preference="extensions.zotero-wechat-importer.mimo.baseURL"/></hbox>
       <hbox class="wechat-importer-field" align="center"><label value="模型" control="wechat-importer-mimo-model"/><html:input id="wechat-importer-mimo-model" type="text" preference="extensions.zotero-wechat-importer.mimo.model"/></hbox>
+      <hbox class="wechat-importer-field" align="center"><label value="看图模型" control="wechat-importer-mimo-vision-model"/><html:input id="wechat-importer-mimo-vision-model" type="text" preference="extensions.zotero-wechat-importer.mimo.visionModel"/></hbox>
       <html:p class="wechat-importer-note">Token Plan 可填写套餐提供的专属 API 地址和 Key。</html:p>
     </vbox>
 
     <hbox class="wechat-importer-actions" align="center">
-      <button id="wechat-importer-test-button" label="测试当前模型连接" oncommand="WeChatImporterPreferences.testConnection();"/>
+      <button id="wechat-importer-test-button" label="测试文本模型连接" oncommand="WeChatImporterPreferences.testConnection();"/>
       <html:span id="wechat-importer-test-status" role="status"/>
     </hbox>
-    <html:p class="wechat-importer-note">API Key 以明文保存在本机 Zotero 首选项中。不要在共享设备上保存个人 Key。</html:p>
+    <html:p class="wechat-importer-note">有文章图片时，插件使用“看图模型”同时读取正文和所选图片；没有图片时仍使用“模型”。上方按钮仅测试文本模型。图片与 API Key 会发送给所选服务，可能产生额外用量；Key 以明文保存在本机 Zotero 首选项中。</html:p>
   </vbox>
 
   <vbox class="wechat-importer-card wechat-importer-about">
     <html:h2>关于</html:h2>
-    <html:p>WeChat Papers · 0.2.1</html:p>
+    <html:p>WeChat Papers · 0.3.0</html:p>
     <html:p>从微信公众号文章识别论文线索，经 PubMed / Crossref 核验后导入 Zotero，并查找可用全文。</html:p>
     <html:p>项目仓库：<html:a href="https://github.com/nkbaim/zotero-wechat-importer" target="_blank" onclick="WeChatImporterPreferences.openExternalLink(event);">github.com/nkbaim/zotero-wechat-importer</html:a></html:p>
     <html:p>
